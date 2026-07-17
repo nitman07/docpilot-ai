@@ -41,7 +41,8 @@ See [`docker-compose.yml`](docker-compose.yml) for service configuration.
 | # | Status | Feature |
 |---|--------|---------|
 | M1 | ✅ Done | Foundation — FastAPI, Docker Compose, Qdrant, PostgreSQL, Redis, health checks |
-| M2 | 🔄 Next | Document ingestion — upload, extract, chunk, embed, store |
+| M2 | ✅ Done | Document ingestion — PDF upload, extract, chunk, embed, store |
+| M3 | 🔄 Next | Core RAG pipeline — hybrid search + reranker |
 | M3 | ❌ | Core RAG pipeline — hybrid search + reranker |
 | M4 | ❌ | Chat API with streaming LLM + citations |
 | M5 | ❌ | Agentic layer (LangGraph) |
@@ -56,9 +57,16 @@ app/
 ├── main.py              # FastAPI entrypoint
 ├── core/
 │   ├── config.py        # pydantic-settings (env-based config)
-│   └── logging.py       # loguru (structured JSON logging)
-└── api/
-    └── health.py        # /health endpoint (checks all services)
+│   ├── logging.py       # loguru (structured JSON logging)
+│   ├── db.py            # PostgreSQL connection pool + schema
+│   ├── qdrant.py        # Qdrant client (collection, upsert, delete)
+│   ├── storage.py       # PDF extraction + text chunking
+│   └── embeddings.py    # OpenAI embedding client
+├── api/
+│   ├── health.py        # /health endpoint (checks all services)
+│   └── documents.py     # Document CRUD + upload endpoints
+└── schemas/
+    └── document.py      # Pydantic models
 ```
 
 ## License
