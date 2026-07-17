@@ -7,3 +7,5 @@ __pycache__/
 INTERVIEW_QA.md
 SESSION_SUMMARY.md
 conversation.md
+mlflow.db
+mlruns/
