@@ -31,6 +31,9 @@ class Settings(BaseSettings):
 
     openai_api_key: str = ""
 
+    reranker_model: str = "BAAI/bge-reranker-v2-m3"
+    reranker_device: str = "cpu"
+
     log_level: str = "INFO"
     log_json: bool = False
 
