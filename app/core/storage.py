@@ -1,7 +1,8 @@
+import re
 import tempfile
 from pathlib import Path
 
-from pypdf import PdfReader
+import pdfplumber
 
 
 CHUNK_SIZE = 512
@@ -9,12 +10,12 @@ CHUNK_OVERLAP = 50
 
 
 def extract_text_from_pdf(file_path: str | Path) -> str:
-    reader = PdfReader(file_path)
     pages = []
-    for page in reader.pages:
-        text = page.extract_text()
-        if text:
-            pages.append(text)
+    with pdfplumber.open(file_path) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text(x_tolerance=3)
+            if text:
+                pages.append(text)
     return "\n\n".join(pages)
 
 

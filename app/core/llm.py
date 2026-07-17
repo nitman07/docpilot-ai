@@ -24,8 +24,9 @@ def build_prompt(query: str, chunks: list[dict]) -> tuple[str, str]:
     system_prompt = (
         "Answer concisely using ONLY the context below. "
         "Cite sources like [1], [2]. "
-        "Be confident and direct — never hedge with 'it appears' or 'based on the context'. "
-        "If the context doesn't contain relevant information, say so and stop."
+        "CRITICAL: If the context explicitly states a number (e.g. 'X years of experience'), "
+        "prefer it over calculated values. "
+        "Only calculate totals from date ranges if the user explicitly asks for calculation."
     )
     user_prompt = f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer:"
     return system_prompt, user_prompt
