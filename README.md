@@ -33,7 +33,7 @@ AI-powered assistant that answers questions from internal company documents (tec
 | Vector DB | Qdrant (self-hosted, open-source) |
 | Embeddings | OpenAI `text-embedding-3-small` |
 | Reranking | BAAI/bge-reranker-v2-m3 |
-| LLM | Ollama (dev) / vLLM (prod) |
+| LLM | Ollama (local, self-hosted) |
 | Orchestration | LangGraph |
 | Relational DB | PostgreSQL |
 | Cache / Queue | Redis |
@@ -55,7 +55,7 @@ See [`docker-compose.yml`](docker-compose.yml) for service configuration.
 | M1 | ✅ Done | Foundation — FastAPI, Docker Compose, Qdrant, PostgreSQL, Redis, health checks |
 | M2 | ✅ Done | Document ingestion — PDF upload, extract, chunk, embed, store |
 | M3 | ✅ Done | Core RAG pipeline — hybrid search + reranker |
-| M4 | ❌ | Chat API with streaming LLM + citations |
+| M4 | ✅ Done | Chat API with streaming LLM (Ollama) + citations |
 | M5 | ❌ | Agentic layer (LangGraph) |
 | M6 | ❌ | Auth (OAuth2, JWT, RBAC) |
 | M7 | ❌ | Observability (MLflow, Prometheus, Grafana) |
@@ -72,11 +72,14 @@ app/
 │   ├── db.py            # PostgreSQL connection pool + schema
 │   ├── qdrant.py        # Qdrant client (collection, upsert, delete)
 │   ├── storage.py       # PDF extraction + text chunking
-│   └── embeddings.py    # OpenAI embedding client
+│   ├── embeddings.py    # OpenAI embedding client
+│   ├── llm.py           # Ollama streaming client + prompt builder
+│   └── reranker.py      # Cross-encoder reranker (sentence-transformers)
 ├── api/
 │   ├── health.py        # /health endpoint (checks all services)
 │   ├── documents.py     # Document CRUD + upload endpoints
-│   └── search.py        # POST /search — hybrid search + reranker
+│   ├── search.py        # POST /search — hybrid search + reranker
+│   └── chat.py          # POST /chat — streaming LLM with citations
 ├── schemas/
 │   └── document.py      # Pydantic models
 └── docs/

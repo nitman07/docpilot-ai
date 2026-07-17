@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     reranker_model: str = "BAAI/bge-reranker-v2-m3"
     reranker_device: str = "cpu"
 
+    ollama_host: str = "http://host.docker.internal:11434"
+    ollama_model: str = "llama3.2:3b"
+
     log_level: str = "INFO"
     log_json: bool = False
 
