@@ -1,7 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
 from pydantic import BaseModel
 
+from app.core.auth import get_current_user
 from app.core.embeddings import embed_texts
 from app.core.qdrant import hybrid_search
 from app.core.reranker import rerank
@@ -28,7 +29,7 @@ class SearchResponse(BaseModel):
 
 
 @router.post("", response_model=SearchResponse)
-async def search(req: SearchRequest) -> SearchResponse:
+async def search(req: SearchRequest, user: dict = Depends(get_current_user)) -> SearchResponse:
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 

@@ -26,6 +26,12 @@ AI-powered assistant that answers questions from internal company documents (tec
    │ Load history → Rewrite query (if follow-up)  │
    │ → Retrieve → Stream answer → Save history    │
    └───────────────────────────────────────────────┘
+
+   ┌─────────────── AUTH (M6) ────────────────────┐
+   │ JWT (access + refresh) → bcrypt passwords    │
+   │ Depends(get_current_user) → RBAC (admin/user)│
+   │ Public: /health, /auth/login, /auth/register │
+   └───────────────────────────────────────────────┘
 ```
 
 **Two-stage retrieval:** hybrid search (semantic + BM25) returns top 20 → cross-encoder reranker narrows to top 5. Why? Stage 1 is fast and casts a wide net (high recall). Stage 2 is slower but far more accurate (high precision). Together they beat either approach alone.
@@ -64,7 +70,7 @@ See [`docker-compose.yml`](docker-compose.yml) for service configuration.
 | M3 | ✅ Done | Core RAG pipeline — hybrid search + reranker |
 | M4 | ✅ Done | Chat API with streaming LLM (Ollama) + citations |
 | M5 | ✅ Done | Agentic layer (LangGraph) — multi-turn chat, query rewriting, session management |
-| M6 | ❌ | Auth (OAuth2, JWT, RBAC) |
+| M6 | ✅ Done | Auth (JWT, bcrypt, RBAC) |
 | M7 | ❌ | Observability (MLflow, Prometheus, Grafana) |
 | M8 | ❌ | Production deployment (K8s, Helm, CI/CD) |
 
@@ -76,7 +82,8 @@ app/
 ├── core/
 │   ├── config.py        # pydantic-settings (env-based config)
 │   ├── logging.py       # loguru (structured JSON logging)
-│   ├── db.py            # PostgreSQL connection pool + schema
+│   ├── db.py            # PostgreSQL connection pool + schema + seed_admin
+│   ├── auth.py          # JWT create/verify, bcrypt hashing, get_current_user
 │   ├── qdrant.py        # Qdrant client (collection, upsert, delete)
 │   ├── storage.py       # PDF extraction + text chunking
 │   ├── embeddings.py    # OpenAI embedding client
@@ -84,6 +91,7 @@ app/
 │   ├── reranker.py      # Cross-encoder reranker (sentence-transformers)
 │   └── agent.py         # LangGraph agent (history, rewrite, orchestrate)
 ├── api/
+│   ├── auth.py          # POST /auth/login, /auth/register, /auth/refresh, GET /auth/me
 │   ├── health.py        # /health endpoint (checks all services)
 │   ├── documents.py     # Document CRUD + upload endpoints
 │   ├── search.py        # POST /search — hybrid search + reranker

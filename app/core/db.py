@@ -55,6 +55,16 @@ CREATE TABLE IF NOT EXISTS chat_history (
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id, created_at);
+
+CREATE TABLE IF NOT EXISTS users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    email TEXT UNIQUE NOT NULL,
+    password_hash TEXT NOT NULL,
+    role TEXT NOT NULL DEFAULT 'user',
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
 """
 
 
@@ -92,3 +102,32 @@ async def save_chat_turn(session_id: str, query: str, response: str) -> None:
             session_id,
             response,
         )
+
+
+async def get_user_by_email(email: str) -> dict | None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM users WHERE email = $1", email)
+    return dict(row) if row else None
+
+
+async def create_user(email: str, password_hash: str, role: str = "user") -> dict:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            """INSERT INTO users (email, password_hash, role)
+               VALUES ($1, $2, $3)
+               RETURNING id, email, role, created_at""",
+            email, password_hash, role,
+        )
+    return dict(row)
+
+
+async def seed_admin() -> None:
+    from app.core.auth import hash_password
+    existing = await get_user_by_email(settings.admin_email)
+    if existing:
+        return
+    hashed = hash_password(settings.admin_password)
+    await create_user(settings.admin_email, hashed, role="admin")
+    logger.info(f"Admin user created: {settings.admin_email}")

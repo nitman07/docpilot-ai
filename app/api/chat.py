@@ -1,11 +1,12 @@
 import uuid
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel
 
 from app.core.agent import build_agent
+from app.core.auth import get_current_user
 from app.core.db import save_chat_turn
 from app.core.llm import generate_stream
 
@@ -19,7 +20,7 @@ class ChatRequest(BaseModel):
 
 
 @router.post("")
-async def chat(req: ChatRequest):
+async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 

@@ -40,5 +40,13 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_json: bool = False
 
+    jwt_secret_key: str = "docpilot-dev-secret-key-change-in-production"
+    jwt_algorithm: str = "HS256"
+    jwt_access_token_expire_minutes: int = 30
+    jwt_refresh_token_expire_days: int = 7
+
+    admin_email: str = "admin@docpilot.ai"
+    admin_password: str = "admin123"
+
 
 settings = Settings()

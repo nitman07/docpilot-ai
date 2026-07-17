@@ -1,9 +1,10 @@
 import json
 from uuid import UUID
 
-from fastapi import APIRouter, File, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from loguru import logger
 
+from app.core.auth import get_current_user
 from app.core.db import get_pool
 from app.core.embeddings import embed_texts
 from app.core.qdrant import ensure_collection, upsert_chunks, delete_document_chunks
@@ -21,7 +22,7 @@ def _row_to_doc(row) -> dict:
 
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)
-async def upload_document(file: UploadFile = File(...)) -> DocumentUploadResponse:
+async def upload_document(file: UploadFile = File(...), user: dict = Depends(get_current_user)) -> DocumentUploadResponse:
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are supported")
 
@@ -75,7 +76,7 @@ async def upload_document(file: UploadFile = File(...)) -> DocumentUploadRespons
 
 
 @router.get("", response_model=list[Document])
-async def list_documents() -> list[Document]:
+async def list_documents(user: dict = Depends(get_current_user)) -> list[Document]:
     pool = await get_pool()
     async with pool.acquire() as conn:
         rows = await conn.fetch(
@@ -85,7 +86,7 @@ async def list_documents() -> list[Document]:
 
 
 @router.get("/{doc_id}", response_model=Document)
-async def get_document(doc_id: UUID) -> Document:
+async def get_document(doc_id: UUID, user: dict = Depends(get_current_user)) -> Document:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
@@ -97,7 +98,7 @@ async def get_document(doc_id: UUID) -> Document:
 
 
 @router.delete("/{doc_id}", status_code=204)
-async def delete_document(doc_id: UUID) -> None:
+async def delete_document(doc_id: UUID, user: dict = Depends(get_current_user)) -> None:
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow(
