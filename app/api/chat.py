@@ -1,18 +1,20 @@
+import uuid
+
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from loguru import logger
 from pydantic import BaseModel
 
-from app.core.embeddings import embed_texts
+from app.core.agent import build_agent
+from app.core.db import save_chat_turn
 from app.core.llm import generate_stream
-from app.core.qdrant import hybrid_search
-from app.core.reranker import rerank
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 class ChatRequest(BaseModel):
     query: str
+    session_id: str | None = None
     top_k: int = 5
 
 
@@ -21,34 +23,48 @@ async def chat(req: ChatRequest):
     if not req.query.strip():
         raise HTTPException(status_code=400, detail="Query cannot be empty")
 
-    logger.info(f"Chat query: {req.query[:100]}")
+    session_id = req.session_id or str(uuid.uuid4())
+    is_new = req.session_id is None
 
-    embeddings = embed_texts([req.query])
-    query_vector = embeddings[0]
+    logger.info(f"Chat [{session_id[:8]}]: {req.query[:100]}")
 
-    scored_points = hybrid_search(req.query, query_vector, limit=20)
+    agent = build_agent()
 
-    if not scored_points:
-        async def empty_stream():
+    result = await agent.ainvoke({
+        "session_id": session_id,
+        "query": req.query,
+        "history": [],
+        "rewritten_query": None,
+        "chunks": [],
+        "quality_ok": False,
+        "retry_count": 0,
+    })
+
+    chunks = result.get("chunks", [])
+    rewritten = result.get("rewritten_query")
+
+    async def response_stream():
+        yield f"__session__:{session_id}\n"
+        if is_new:
+            yield f"__new__:true\n"
+        if rewritten and rewritten != req.query:
+            yield f"__rewrite__:{rewritten}\n"
+        yield f"__chunks__:{len(chunks)}\n"
+
+        if not chunks:
             yield "I don't have enough information to answer this question."
+            await save_chat_turn(session_id, req.query, "I don't have enough information to answer this question.")
+            return
 
-        return StreamingResponse(empty_stream(), media_type="text/plain")
+        full_response = []
+        async for token in generate_stream(rewritten or req.query, chunks):
+            full_response.append(token)
+            yield token
 
-    chunks = [
-        {
-            "chunk_text": p.payload["chunk_text"],
-            "document_id": p.payload["document_id"],
-            "doc_name": p.payload["doc_name"],
-            "chunk_index": p.payload.get("chunk_index", 0),
-            "score": p.score,
-        }
-        for p in scored_points
-    ]
-
-    ranked = rerank(req.query, chunks, top_k=req.top_k)
+        await save_chat_turn(session_id, req.query, "".join(full_response))
 
     return StreamingResponse(
-        generate_stream(req.query, ranked),
+        response_stream(),
         media_type="text/plain",
         headers={
             "X-Accel-Buffering": "no",

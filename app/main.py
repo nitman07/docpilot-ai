@@ -9,12 +9,14 @@ from app.api.search import router as search_router
 from app.core.config import settings
 from app.core.db import close_pool, init_db
 from app.core.logging import setup_logging
+from app.core.reranker import get_model
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
     await init_db()
+    get_model()
     yield
     await close_pool()
 

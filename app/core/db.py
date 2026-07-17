@@ -45,6 +45,16 @@ CREATE TABLE IF NOT EXISTS documents (
 
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_documents_created_at ON documents(created_at DESC);
+
+CREATE TABLE IF NOT EXISTS chat_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id TEXT NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_chat_history_session ON chat_history(session_id, created_at);
 """
 
 
@@ -53,3 +63,32 @@ async def init_db() -> None:
     async with pool.acquire() as conn:
         await conn.execute(INIT_SQL)
     logger.info("Database schema initialized")
+
+
+async def get_chat_history(session_id: str, limit: int = 5) -> list[dict]:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            """SELECT role, content FROM chat_history
+               WHERE session_id = $1
+               ORDER BY created_at DESC
+               LIMIT $2""",
+            session_id,
+            limit,
+        )
+    return [{"role": r["role"], "content": r["content"]} for r in reversed(rows)]
+
+
+async def save_chat_turn(session_id: str, query: str, response: str) -> None:
+    pool = await get_pool()
+    async with pool.acquire() as conn:
+        await conn.execute(
+            """INSERT INTO chat_history (session_id, role, content) VALUES ($1, 'user', $2)""",
+            session_id,
+            query,
+        )
+        await conn.execute(
+            """INSERT INTO chat_history (session_id, role, content) VALUES ($1, 'assistant', $2)""",
+            session_id,
+            response,
+        )

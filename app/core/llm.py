@@ -6,15 +6,12 @@ from loguru import logger
 from app.core.config import settings
 
 
-def build_prompt(query: str, chunks: list[dict]) -> str:
+def build_prompt(query: str, chunks: list[dict]) -> tuple[str, str]:
     if not chunks:
-        return f"""You are DocPilot, an AI assistant for enterprise documents.
-
-The knowledge base returned no relevant information for this question.
-
-Question: {query}
-
-Answer: I don't have enough information to answer this question."""
+        return (
+            "You are DocPilot. Answer using ONLY the provided context. Never make up information.",
+            f"The knowledge base returned no relevant information.\n\nQuestion: {query}",
+        )
 
     context_parts = []
     for i, c in enumerate(chunks, 1):
@@ -24,25 +21,23 @@ Answer: I don't have enough information to answer this question."""
 
     context = "\n\n".join(context_parts)
 
-    return f"""You are DocPilot, an AI assistant for enterprise documents.
-Answer the question using ONLY the provided context chunks below.
-Cite each claim using the bracketed number like [1], [2] etc.
-If the context doesn't contain enough information, say "I don't have enough information."
-
-Context:
-{context}
-
-Question: {query}
-
-Answer:"""
+    system_prompt = (
+        "Answer concisely using ONLY the context below. "
+        "Cite sources like [1], [2]. "
+        "Be confident and direct — never hedge with 'it appears' or 'based on the context'. "
+        "If the context doesn't contain relevant information, say so and stop."
+    )
+    user_prompt = f"Context:\n{context}\n\nQuestion: {query}\n\nAnswer:"
+    return system_prompt, user_prompt
 
 
 async def generate_stream(query: str, chunks: list[dict]):
-    prompt = build_prompt(query, chunks)
+    system_prompt, user_prompt = build_prompt(query, chunks)
 
     body = {
         "model": settings.ollama_model,
-        "prompt": prompt,
+        "system": system_prompt,
+        "prompt": user_prompt,
         "stream": True,
     }
 
