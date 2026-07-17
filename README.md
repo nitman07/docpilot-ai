@@ -32,6 +32,12 @@ AI-powered assistant that answers questions from internal company documents (tec
    │ Depends(get_current_user) → RBAC (admin/user)│
    │ Public: /health, /auth/login, /auth/register │
    └───────────────────────────────────────────────┘
+
+   ┌─────────── OBSERVABILITY (M7) ───────────────┐
+   │ /metrics (Prometheus) ← scraped every 5s    │
+   │ Grafana dashboard → RAG latency / quality   │
+   │ MLflow → offline eval, experiment tracking  │
+   └───────────────────────────────────────────────┘
 ```
 
 **Two-stage retrieval:** hybrid search (semantic + BM25) returns top 20 → cross-encoder reranker narrows to top 5. Why? Stage 1 is fast and casts a wide net (high recall). Stage 2 is slower but far more accurate (high precision). Together they beat either approach alone.
@@ -50,6 +56,8 @@ AI-powered assistant that answers questions from internal company documents (tec
 | Orchestration | LangGraph |
 | Relational DB | PostgreSQL |
 | Cache / Queue | Redis |
+| Monitoring | Prometheus + Grafana |
+| Experiment Tracking | MLflow |
 | Containerization | Docker Compose / Kubernetes |
 
 ## Quick Start
@@ -71,7 +79,7 @@ See [`docker-compose.yml`](docker-compose.yml) for service configuration.
 | M4 | ✅ Done | Chat API with streaming LLM (Ollama) + citations |
 | M5 | ✅ Done | Agentic layer (LangGraph) — multi-turn chat, query rewriting, session management |
 | M6 | ✅ Done | Auth (JWT, bcrypt, RBAC) |
-| M7 | ❌ | Observability (MLflow, Prometheus, Grafana) |
+| M7 | ✅ Done | Observability (Prometheus, Grafana, MLflow) |
 | M8 | ❌ | Production deployment (K8s, Helm, CI/CD) |
 
 ## Project Structure
@@ -98,6 +106,11 @@ app/
 │   └── chat.py          # POST /chat — streaming LLM with citations
 ├── schemas/
 │   └── document.py      # Pydantic models
+├── prometheus/
+│   └── prometheus.yml   # Prometheus scrape config
+├── grafana/
+│   ├── provisioning/    # Auto-config (datasource + dashboard)
+│   └── dashboards/      # Pre-built RAG dashboard JSON
 └── docs/
     ├── architecture.mmd  # Mermaid architecture diagram
     └── complete-flow.mmd # Full M1-M5 flow diagram

@@ -1,0 +1,134 @@
+{
+  "title": "DocPilot RAG Dashboard",
+  "uid": "docpilot-rag",
+  "tags": ["rag", "docpilot"],
+  "timezone": "browser",
+  "panels": [
+    {
+      "title": "RAG Pipeline Latency",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0}
+    },
+    {
+      "title": "Retrieval Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 1},
+      "targets": [
+        {
+          "expr": "rate(rag_retrieval_latency_seconds_sum[5m]) / rate(rag_retrieval_latency_seconds_count[5m])",
+          "legendFormat": "avg"
+        }
+      ]
+    },
+    {
+      "title": "Reranker Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 1},
+      "targets": [
+        {
+          "expr": "rate(rag_reranker_latency_seconds_sum[5m]) / rate(rag_reranker_latency_seconds_count[5m])",
+          "legendFormat": "avg"
+        }
+      ]
+    },
+    {
+      "title": "LLM Generation Latency",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 1},
+      "targets": [
+        {
+          "expr": "rate(rag_llm_latency_seconds_sum[5m]) / rate(rag_llm_latency_seconds_count[5m])",
+          "legendFormat": "avg"
+        }
+      ]
+    },
+    {
+      "title": "HTTP Traffic",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9}
+    },
+    {
+      "title": "Requests per Second",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "targets": [
+        {
+          "expr": "rate(http_requests_total[1m])",
+          "legendFormat": "{{method}} {{endpoint}}"
+        }
+      ]
+    },
+    {
+      "title": "Request Duration (avg)",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 10},
+      "targets": [
+        {
+          "expr": "rate(http_request_duration_seconds_sum[5m]) / rate(http_request_duration_seconds_count[5m])",
+          "legendFormat": "avg"
+        }
+      ]
+    },
+    {
+      "title": "Retrieval Quality",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18}
+    },
+    {
+      "title": "Chunks Retrieved per Query",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 19},
+      "targets": [
+        {
+          "expr": "rate(rag_chunks_retrieved_sum[5m]) / rate(rag_chunks_retrieved_count[5m])",
+          "legendFormat": "avg chunks"
+        }
+      ]
+    },
+    {
+      "title": "Zero Result Rate",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 19},
+      "targets": [
+        {
+          "expr": "rate(rag_zero_result_total[5m])",
+          "legendFormat": "zero results / sec"
+        }
+      ]
+    },
+    {
+      "title": "Avg Reranker Score",
+      "type": "timeseries",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 19},
+      "targets": [
+        {
+          "expr": "rate(rag_avg_reranker_score_sum[5m]) / rate(rag_avg_reranker_score_count[5m])",
+          "legendFormat": "avg score"
+        }
+      ]
+    },
+    {
+      "title": "System",
+      "type": "row",
+      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27}
+    },
+    {
+      "title": "Documents Indexed",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 28},
+      "targets": [{"expr": "documents_total"}]
+    },
+    {
+      "title": "Chunks Stored",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 4, "y": 28},
+      "targets": [{"expr": "chunks_total"}]
+    },
+    {
+      "title": "Active Sessions",
+      "type": "stat",
+      "gridPos": {"h": 4, "w": 4, "x": 8, "y": 28},
+      "targets": [{"expr": "active_sessions"}]
+    }
+  ]
+}

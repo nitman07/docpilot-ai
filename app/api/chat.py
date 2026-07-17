@@ -1,4 +1,5 @@
 import uuid
+from time import time
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
@@ -9,6 +10,8 @@ from app.core.agent import build_agent
 from app.core.auth import get_current_user
 from app.core.db import save_chat_turn
 from app.core.llm import generate_stream
+from app.core.metrics import rag_avg_reranker_score, rag_chunks_retrieved, rag_llm_latency_seconds, rag_zero_result
+from app.core.tracker import log_query
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -29,6 +32,7 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
 
     logger.info(f"Chat [{session_id[:8]}]: {req.query[:100]}")
 
+    t0 = time()
     agent = build_agent()
 
     result = await agent.ainvoke({
@@ -40,9 +44,17 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
         "quality_ok": False,
         "retry_count": 0,
     })
+    retrieval_latency = time() - t0
 
     chunks = result.get("chunks", [])
     rewritten = result.get("rewritten_query")
+
+    if chunks:
+        rag_chunks_retrieved.observe(len(chunks))
+        avg_score = sum(c.get("score", 0) for c in chunks) / len(chunks)
+        rag_avg_reranker_score.observe(avg_score)
+    else:
+        rag_zero_result.inc()
 
     async def response_stream():
         yield f"__session__:{session_id}\n"
@@ -58,11 +70,18 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
             return
 
         full_response = []
+        llm_start = time()
         async for token in generate_stream(rewritten or req.query, chunks):
             full_response.append(token)
             yield token
 
-        await save_chat_turn(session_id, req.query, "".join(full_response))
+        llm_latency = time() - llm_start
+        rag_llm_latency_seconds.observe(llm_latency)
+
+        response_text = "".join(full_response)
+        await save_chat_turn(session_id, req.query, response_text)
+
+        log_query(req.query, rewritten, chunks, retrieval_latency, 0, llm_latency, response_text)
 
     return StreamingResponse(
         response_stream(),
