@@ -5,13 +5,25 @@ AI-powered assistant that answers questions from internal company documents (tec
 ## Architecture
 
 ```
-User → FastAPI → LangGraph (agent orchestration)
-                    ├── Qdrant (vector search — hybrid dense + BM25)
-                    ├── PostgreSQL (document metadata)
-                    └── Redis (cache / session state)
+   ┌────────────────── INGESTION ──────────────────┐
+   │ PDF Upload → Text Extract → Chunk → Embed →  │
+   │           Qdrant (vectors + text)             │
+   │           PostgreSQL (doc metadata)           │
+   └───────────────────────────────────────────────┘
+
+   ┌─────────────────── SEARCH ────────────────────┐
+   │ Query → OpenAI Embed → Qdrant Hybrid Search  │
+   │         (dense + BM25, RRF fusion)            │
+   │              → Cross-Encoder Reranker         │
+   │              → Top 5 ranked chunks            │
+   └───────────────────────────────────────────────┘
+
+   ┌────────────────── CHAT (M4) ──────────────────┐
+   │ Top chunks + query → LLM → answer + citations │
+   └───────────────────────────────────────────────┘
 ```
 
-Two-stage retrieval: **hybrid search** (semantic + keyword) returns top 20 chunks → **cross-encoder reranker** narrows to top 5 → LLM generates answer with citations.
+**Two-stage retrieval:** hybrid search (semantic + BM25) returns top 20 → cross-encoder reranker narrows to top 5. Why? Stage 1 is fast and casts a wide net (high recall). Stage 2 is slower but far more accurate (high precision). Together they beat either approach alone.
 
 ## Tech Stack
 
@@ -42,8 +54,7 @@ See [`docker-compose.yml`](docker-compose.yml) for service configuration.
 |---|--------|---------|
 | M1 | ✅ Done | Foundation — FastAPI, Docker Compose, Qdrant, PostgreSQL, Redis, health checks |
 | M2 | ✅ Done | Document ingestion — PDF upload, extract, chunk, embed, store |
-| M3 | 🔄 Next | Core RAG pipeline — hybrid search + reranker |
-| M3 | ❌ | Core RAG pipeline — hybrid search + reranker |
+| M3 | ✅ Done | Core RAG pipeline — hybrid search + reranker |
 | M4 | ❌ | Chat API with streaming LLM + citations |
 | M5 | ❌ | Agentic layer (LangGraph) |
 | M6 | ❌ | Auth (OAuth2, JWT, RBAC) |
@@ -64,9 +75,13 @@ app/
 │   └── embeddings.py    # OpenAI embedding client
 ├── api/
 │   ├── health.py        # /health endpoint (checks all services)
-│   └── documents.py     # Document CRUD + upload endpoints
-└── schemas/
-    └── document.py      # Pydantic models
+│   ├── documents.py     # Document CRUD + upload endpoints
+│   └── search.py        # POST /search — hybrid search + reranker
+├── schemas/
+│   └── document.py      # Pydantic models
+└── docs/
+    ├── architecture.mmd  # Mermaid architecture diagram
+    └── docpilot-flow.mmd # Full M1-M2-M3 flow diagram
 ```
 
 ## License
