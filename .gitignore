@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 INTERVIEW_QA.md
 SESSION_SUMMARY.md
+*.md
