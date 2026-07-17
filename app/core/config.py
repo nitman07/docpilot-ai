@@ -29,6 +29,8 @@ class Settings(BaseSettings):
     redis_password: str | None = None
     redis_db: int = 0
 
+    openai_api_key: str = ""
+
     log_level: str = "INFO"
     log_json: bool = False
 

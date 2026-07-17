@@ -10,6 +10,7 @@ services:
       - QDRANT_HOST=qdrant
       - POSTGRES_HOST=postgres
       - REDIS_HOST=redis
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
     depends_on:
       qdrant:
         condition: service_started
