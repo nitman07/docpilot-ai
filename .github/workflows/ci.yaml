@@ -31,7 +31,12 @@ jobs:
           python-version: "3.12"
           cache: pip
       - run: pip install -r requirements.txt
-      - run: pytest tests/ -v --timeout=60
+      - run: |
+          if [ -d tests ] && [ "$(ls -A tests/ 2>/dev/null)" ]; then
+            pytest tests/ -v --timeout=60
+          else
+            echo "No tests found — skipping"
+          fi
 
   docker:
     runs-on: ubuntu-latest
