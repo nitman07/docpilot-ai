@@ -59,7 +59,7 @@ async def chat(req: ChatRequest, user: dict = Depends(get_current_user)):
     async def response_stream():
         yield f"__session__:{session_id}\n"
         if is_new:
-            yield f"__new__:true\n"
+            yield "__new__:true\n"
         if rewritten and rewritten != req.query:
             yield f"__rewrite__:{rewritten}\n"
         yield f"__chunks__:{len(chunks)}\n"

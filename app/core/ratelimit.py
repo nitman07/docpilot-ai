@@ -3,7 +3,6 @@ from time import time
 from fastapi import HTTPException, Request
 from fastapi.responses import JSONResponse
 
-from app.core.config import settings
 from app.core.db import redis_client
 
 

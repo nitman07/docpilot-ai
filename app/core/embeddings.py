@@ -1,7 +1,5 @@
 from openai import OpenAI
 
-from app.core.config import settings
-
 EMBEDDING_MODEL = "text-embedding-3-small"
 EMBEDDING_DIMENSIONS = 1536
 
