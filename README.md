@@ -166,8 +166,6 @@ app/
 - **Eight milestones** — each building on the last, from a basic API to a full K8s-deployed platform. Shows ability to scope, plan, and execute iteratively.
 - **Deep trade-off reasoning** — every choice (Qdrant vs Pinecone, hybrid vs pure dense, LangGraph vs chain, JWT vs OAuth2) has documented rationale. Not cargo-culted.
 - **Observability from day one** — Prometheus metrics on every request, Grafana dashboards, MLflow experiment tracking. Built to be operated, not just developed.
-- **Interview-ready** — 350+ lines of interview Q&A in [`INTERVIEW_QA.md`](INTERVIEW_QA.md) covering architecture, ingestion, retrieval, chat, agents, auth, and production deployment.
-
 ---
 
 ## License
