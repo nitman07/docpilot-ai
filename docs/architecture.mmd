@@ -1,0 +1,100 @@
+flowchart TD
+    title[DocPilot - Enterprise AI Knowledge Assistant]
+
+    subgraph Client["Client Layer"]
+        UI[Web UI / API Clients]
+        REQ["HTTP Requests"]
+    end
+
+    subgraph Gateway["API Gateway (FastAPI)"]
+        Auth[Auth Middleware<br>JWT + bcrypt + RBAC]
+        Rate[Rate Limiting<br>Redis token bucket]
+        Valid[Request Validation<br>Pydantic]
+        MID[Prometheus Metrics<br>every request]
+    end
+
+    subgraph Agent["LangGraph Agent (M5)"]
+        LH[Load History<br>PostgreSQL]
+        SW{Should Rewrite?}
+        RQ[Rewrite Query<br>Ollama]
+        RT[Retrieve]
+        LH --> SW
+        SW -->|yes| RQ
+        SW -->|no| RT
+        RQ --> RT
+    end
+
+    subgraph RAG["RAG Pipeline (M3 + M4)"]
+        EMB[OpenAI Embeddings<br>text-embedding-3-small]
+        HS[Hybrid Search<br>Qdrant dense + BM25]
+        RRF[RRF Fusion<br>k=60 → top 20]
+        CR[Cross-Encoder Reranker<br>BAAI/bge-reranker-v2-m3]
+        PB[Prompt Builder<br>with citations]
+        LLM[Ollama llama3.2:3b<br>streaming]
+        EMB --> HS
+        HS --> RRF
+        RRF --> CR
+        CR --> PB
+        PB --> LLM
+    end
+
+    subgraph Ingestion["Ingestion Pipeline (M2)"]
+        DL[Document Loader<br>PDF upload]
+        TE[pdfplumber<br>Text Extraction]
+        CH[tiktoken Chunker<br>512 tokens, 50 overlap]
+        DL --> TE
+        TE --> CH
+        CH --> EMB
+    end
+
+    subgraph Storage["Storage Layer"]
+        QD[Qdrant<br>Vectors + Payload]
+        PG[(PostgreSQL<br>Metadata, Users,<br>Chat History)]
+        RD{Redis<br>Cache, Rate Limit}
+    end
+
+    subgraph Observability["Observability (M7)"]
+        PROM[Prometheus<br>RAG & HTTP metrics]
+        GRAF[Grafana<br>Dashboards]
+        MLF[MLflow<br>Experiment Tracking]
+        PROM --> GRAF
+    end
+
+    subgraph Deploy["Deployment (M8)"]
+        DC[Docker Compose<br>Local dev]
+        K8S[Kubernetes<br>Kind / Production]
+        HELM[Helm Chart<br>Parameterized]
+        CICD[GitHub Actions<br>CI/CD]
+    end
+
+    REQ -->|HTTPS| Gateway
+    Gateway --> Auth
+    Auth --> Agent
+    Agent --> RAG
+    RAG --> Storage
+    Ingestion -->|Embed & Store| QD
+    Ingestion -->|Metadata| PG
+    RAG -->|Cache| RD
+    RAG -->|Log Queries| MLF
+    Gateway -->|Metrics| PROM
+    DC --> K8S
+    K8S --> HELM
+    HELM --> CICD
+
+    classDef client fill:#e1f5fe,stroke:#01579b
+    classDef gateway fill:#f3e5f5,stroke:#4a148c
+    classDef agent fill:#fff3e0,stroke:#e65100
+    classDef rag fill:#e8f5e9,stroke:#1b5e20
+    classDef ingest fill:#fce4ec,stroke:#880e4f
+    classDef storage fill:#f5f5f5,stroke:#212121
+    classDef observability fill:#e0f2f1,stroke:#004d40
+    classDef deploy fill:#fbe9e7,stroke:#bf360c
+
+    class UI,REQ client
+    class Auth,Rate,Valid,MID gateway
+    class LH,SW,RQ,RT agent
+    class EMB,HS,RRF,CR,PB,LLM rag
+    class DL,TE,CH ingest
+    class QD,PG,RD storage
+    class PROM,GRAF,MLF observability
+    class DC,K8S,HELM,CICD deploy

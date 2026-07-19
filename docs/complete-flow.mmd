@@ -1,0 +1,80 @@
+flowchart TD
+    subgraph M1["M1: Foundation"]
+        DC["Docker Compose"] --> API["FastAPI + Uvicorn"]
+        DC --> QD["Qdrant v1.9 (vector DB)"]
+        DC --> PG["PostgreSQL 16 (metadata)"]
+        DC --> RD["Redis 7 (cache)"]
+        API --> HE["GET /health<br>checks all services"]
+    end
+
+    subgraph M2["M2: Ingestion Pipeline"]
+        UL["POST /documents/upload<br>PDF upload"] --> PX["pdfplumber text extraction"]
+        PX --> CH["tiktoken chunk<br>512 tokens, 50 overlap"]
+        CH --> EM["OpenAI text-embedding-3-small<br>→ 1536d vectors"]
+        EM --> QS["Store dense + sparse vectors in Qdrant"]
+        EM --> PS["Store metadata in PostgreSQL"]
+    end
+
+    subgraph M3["M3: Core RAG Pipeline"]
+        SQ["POST /search"] --> EQ["Embed query"]
+        EQ --> HS["Hybrid Search"]
+        HS --> DS["Dense (semantic)"]
+        HS --> SS["Sparse (BM25)"]
+        DS --> RRF["RRF fusion<br>k=60"]
+        SS --> RRF
+        RRF --> T20["Top 20"]
+        T20 --> CR["BAAI/bge-reranker-v2-m3<br>cross-encoder"]
+        CR --> T5["Top 5 ranked chunks"]
+    end
+
+    subgraph M4["M4: Chat API"]
+        CHAT["POST /chat {query}"] --> RET["Retrieve top 5"]
+        RET --> PROMPT["Build prompt with citations<br>[1], [2], ..."]
+        PROMPT --> OLLAMA["Ollama llama3.2:3b<br>streaming /api/generate"]
+        OLLAMA --> SSE["StreamingResponse<br>text/plain"]
+    end
+
+    subgraph M5["M5: LangGraph Agent"]
+        LG_CHAT["POST /chat {query, session_id}"] --> LG["LangGraph StateGraph"]
+        LG --> LH["load_history<br>PostgreSQL (last 5 turns)"]
+        LH --> SW{"should_rewrite?<br>history exists AND<br>query < 10 words"}
+        SW -->|"yes"| RQ["rewrite_query<br>Ollama"]
+        SW -->|"no"| RV["retrieve"]
+        RQ --> RV
+        RV --> GS["generate_stream<br>Ollama"]
+        GS --> SH["save_history<br>PostgreSQL"]
+    end
+
+    subgraph M6["M6: Auth & RBAC"]
+        REG["POST /auth/register"] --> BC["bcrypt hash password"]
+        LOG["POST /auth/login"] --> VER["verify password"]
+        VER --> JWT["JWT access token (30m)<br>+ refresh token (7d)"]
+        JWT --> DEP["Depends(get_current_user)<br>protects all routes"]
+    end
+
+    subgraph M7["M7: Observability"]
+        REQ["Every HTTP request"] --> MID["metrics middleware<br>latency, status, method"]
+        MID --> PROM["/metrics endpoint<br>Prometheus scrape every 5s"]
+        PROM --> GRAF["Grafana dashboard<br>RAG latency & quality"]
+        CHATQ["Each chat query"] --> MLF["MLflow log<br>latencies, scores, artifacts"]
+    end
+
+    subgraph M8["M8: Production Deployment"]
+        K8S["Kubernetes (Kind)"] --> HELM["Helm chart<br>7 services"]
+        HELM --> HPA["HPA: 2-10 pods<br>CPU 70% / mem 80%"]
+        HELM --> ING["Ingress (nginx)"]
+        HELM --> PVC["Persistent volumes<br>Qdrant, PG, Redis, etc."]
+        CICD["GitHub Actions"] --> BUILD["Build & push image"]
+        BUILD --> DEPLOY["helm upgrade --install"]
+        DEPLOY --> CHECK["Health check"]
+        HELM --> BACKUP["Daily pg_dump CronJob<br>30-day retention"]
+        HELM --> RATE["Redis rate limiter<br>20 req/min/user"]
+    end
+
+    M1 --> M2
+    M2 --> M3
+    M3 --> M4
+    M4 --> M5
+    M5 --> M6
+    M6 --> M7
+    M7 --> M8
