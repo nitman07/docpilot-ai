@@ -12,8 +12,8 @@ def start_tracking():
     global _run_started
     if _run_started:
         return
-    mlflow.set_tracking_uri("sqlite:///mlflow.db")
-    mlflow.set_experiment("docpilot-rag")
+    mlflow.set_tracking_uri(settings.mlflow_tracking_uri)
+    mlflow.set_experiment(settings.mlflow_experiment_name)
     mlflow.start_run(run_name=f"run-{datetime.now(timezone.utc).strftime('%Y%m%d-%H%M%S')}")
     mlflow.log_params({
         "ollama_model": settings.ollama_model,

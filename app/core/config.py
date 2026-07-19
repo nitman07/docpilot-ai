@@ -48,5 +48,8 @@ class Settings(BaseSettings):
     admin_email: str = "admin@docpilot.ai"
     admin_password: str = "admin123"
 
+    mlflow_tracking_uri: str = "sqlite:///mlflow_data/mlflow.db"
+    mlflow_experiment_name: str = "docpilot-rag"
+
 
 settings = Settings()

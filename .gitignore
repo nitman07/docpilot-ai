@@ -9,3 +9,4 @@ SESSION_SUMMARY.md
 conversation.md
 mlflow.db
 mlruns/
+mlflow_data/
