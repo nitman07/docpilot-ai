@@ -50,16 +50,18 @@ async def search(req: SearchRequest, user: dict = Depends(get_current_user)) -> 
         rag_zero_result.inc()
         return SearchResponse(query=req.query, results=[])
 
-    chunks = [
-        {
-            "chunk_text": p.payload["chunk_text"],
-            "document_id": p.payload["document_id"],
-            "doc_name": p.payload["doc_name"],
-            "chunk_index": p.payload.get("chunk_index", 0),
+    chunks = []
+    for p in scored_points:
+        payload = p.payload
+        if payload is None:
+            continue
+        chunks.append({
+            "chunk_text": payload["chunk_text"],
+            "document_id": payload["document_id"],
+            "doc_name": payload["doc_name"],
+            "chunk_index": payload.get("chunk_index", 0),
             "score": p.score,
-        }
-        for p in scored_points
-    ]
+        })
 
     t1 = time()
     ranked = rerank(req.query, chunks, top_k=req.top_k)

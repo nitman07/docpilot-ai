@@ -14,11 +14,11 @@ from app.schemas.document import Document, DocumentUploadResponse
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
-def _row_to_doc(row) -> dict:
+def _row_to_doc(row) -> Document:
     d = dict(row)
     if isinstance(d.get("doc_metadata"), str):
         d["doc_metadata"] = json.loads(d["doc_metadata"])
-    return d
+    return Document(**d)
 
 
 @router.post("/upload", response_model=DocumentUploadResponse, status_code=201)

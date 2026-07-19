@@ -63,16 +63,18 @@ async def retrieve(state: AgentState) -> dict:
     if not scored_points:
         return {"chunks": []}
 
-    chunks = [
-        {
-            "chunk_text": p.payload["chunk_text"],
-            "document_id": p.payload["document_id"],
-            "doc_name": p.payload["doc_name"],
-            "chunk_index": p.payload.get("chunk_index", 0),
+    chunks = []
+    for p in scored_points:
+        payload = p.payload
+        if payload is None:
+            continue
+        chunks.append({
+            "chunk_text": payload["chunk_text"],
+            "document_id": payload["document_id"],
+            "doc_name": payload["doc_name"],
+            "chunk_index": payload.get("chunk_index", 0),
             "score": p.score,
-        }
-        for p in scored_points
-    ]
+        })
 
     ranked = rerank(query, chunks, top_k=5)
 
