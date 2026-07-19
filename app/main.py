@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from time import time
 
 from fastapi import FastAPI, Response
-from fastapi.routing import APIRoute
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
 from app.api.chat import router as chat_router
@@ -17,6 +17,7 @@ from app.core.metrics import (
     http_request_duration_seconds,
     http_requests_total,
 )
+from app.core.ratelimit import rate_limit_middleware
 from app.core.reranker import get_model
 from app.core.tracker import start_tracking, stop_tracking
 
@@ -39,6 +40,14 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE"],
+    allow_headers=["Authorization", "Content-Type"],
+)
+
 
 @app.middleware("http")
 async def metrics_middleware(request, call_next):
@@ -51,6 +60,9 @@ async def metrics_middleware(request, call_next):
     http_requests_total.labels(method=method, endpoint=path, status=status).inc()
     http_request_duration_seconds.labels(method=method, endpoint=path).observe(duration)
     return response
+
+
+app.middleware("http")(rate_limit_middleware)
 
 
 @app.get("/metrics")

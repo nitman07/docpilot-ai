@@ -80,7 +80,7 @@ See [`docker-compose.yml`](docker-compose.yml) for service configuration.
 | M5 | ✅ Done | Agentic layer (LangGraph) — multi-turn chat, query rewriting, session management |
 | M6 | ✅ Done | Auth (JWT, bcrypt, RBAC) |
 | M7 | ✅ Done | Observability (Prometheus, Grafana, MLflow) |
-| M8 | ❌ | Production deployment (K8s, Helm, CI/CD) |
+| M8 | ✅ Done | Production deployment (K8s, Helm, CI/CD, rate limiting, backups) |
 
 ## Project Structure
 

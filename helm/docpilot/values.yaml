@@ -1,0 +1,169 @@
+# Global settings
+global:
+  namespace: docpilot
+
+# API service
+api:
+  image:
+    repository: ghcr.io/your-org/docpilot-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  replicas: 2
+  maxReplicas: 10
+  resources:
+    requests:
+      cpu: 500m
+      memory: 1Gi
+    limits:
+      cpu: 2
+      memory: 4Gi
+  hpa:
+    cpuTarget: 70
+    memoryTarget: 80
+  service:
+    port: 8000
+  env:
+    APP_NAME: DocPilot
+    APP_VERSION: "0.1.0"
+    DEBUG: "false"
+    QDRANT_HOST: docpilot-qdrant
+    QDRANT_PORT: "6333"
+    QDRANT_GRPC_PORT: "6334"
+    QDRANT_PREFER_GRPC: "false"
+    POSTGRES_HOST: docpilot-postgres
+    POSTGRES_PORT: "5432"
+    POSTGRES_DB: docpilot
+    REDIS_HOST: docpilot-redis
+    REDIS_PORT: "6379"
+    REDIS_DB: "0"
+    OLLAMA_HOST: http://ollama-service:11434
+    OLLAMA_MODEL: llama3.2:3b
+    RERANKER_MODEL: BAAI/bge-reranker-v2-m3
+    RERANKER_DEVICE: cpu
+    LOG_LEVEL: INFO
+    LOG_JSON: "true"
+    JWT_ALGORITHM: HS256
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+    JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+    ADMIN_EMAIL: admin@docpilot.ai
+    MLFLOW_TRACKING_URI: http://docpilot-mlflow:5000
+    MLFLOW_EXPERIMENT_NAME: docpilot-rag
+    CORS_ORIGINS: '["https://app.docpilot.ai"]'
+    RATE_LIMIT_CALLS: "20"
+    RATE_LIMIT_PERIOD: "60"
+
+# Secrets (override via --set or external-secrets)
+secrets:
+  OPENAI_API_KEY: ""
+  POSTGRES_PASSWORD: ""
+  REDIS_PASSWORD: ""
+  QDRANT_API_KEY: ""
+  JWT_SECRET_KEY: ""
+  ADMIN_PASSWORD: ""
+
+# Qdrant
+qdrant:
+  enabled: true
+  image: qdrant/qdrant:v1.9.0
+  storageSize: 5Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 512Mi
+    limits:
+      cpu: 1
+      memory: 2Gi
+
+# PostgreSQL (Bitnami subchart)
+postgresql:
+  enabled: true
+  auth:
+    username: docpilot
+    database: docpilot
+    existingSecret: docpilot-secrets
+  primary:
+    persistence:
+      size: 5Gi
+    resources:
+      requests:
+        cpu: 200m
+        memory: 256Mi
+      limits:
+        cpu: 1
+        memory: 1Gi
+
+# Redis (Bitnami subchart)
+redis:
+  enabled: true
+  architecture: standalone
+  auth:
+    existingSecret: docpilot-secrets
+    existingSecretPasswordKey: REDIS_PASSWORD
+  master:
+    persistence:
+      size: 1Gi
+    resources:
+      requests:
+        cpu: 100m
+        memory: 128Mi
+      limits:
+        cpu: 500m
+        memory: 512Mi
+
+# Prometheus
+prometheus:
+  enabled: true
+  image: prom/prometheus:v3.0.0
+  storageSize: 5Gi
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 1
+      memory: 1Gi
+
+# Grafana
+grafana:
+  enabled: true
+  image: grafana/grafana:11.0.0
+  storageSize: 1Gi
+  adminUser: admin
+  adminPassword: admin
+  resources:
+    requests:
+      cpu: 200m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+# MLflow
+mlflow:
+  enabled: true
+  image: ghcr.io/mlflow/mlflow:v2.14.0
+  storageSize: 5Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+
+# Ingress
+ingress:
+  enabled: true
+  className: nginx
+  host: docpilot.local
+  annotations: {}
+
+# Backup
+backup:
+  enabled: true
+  storageSize: 10Gi
+  schedule: "0 2 * * *"
+  retentionDays: 30
+
+# PVC storage class
+storageClass: standard

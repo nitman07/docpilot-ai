@@ -1,0 +1,56 @@
+{{- if .Values.backup.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: docpilot-backup
+  namespace: {{ .Values.global.namespace }}
+spec:
+  schedule: {{ .Values.backup.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: backup
+              image: postgres:16-alpine
+              env:
+                - name: PGHOST
+                  value: docpilot-postgres
+                - name: PGUSER
+                  value: {{ .Values.postgresql.auth.username }}
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Values.postgresql.auth.existingSecret }}
+                      key: POSTGRES_PASSWORD
+                - name: PGDATABASE
+                  value: {{ .Values.postgresql.auth.database }}
+              command:
+                - sh
+                - -c
+                - |
+                  pg_dump -Fc > /backups/docpilot-$(date +%Y%m%d-%H%M%S).dump &&
+                  echo "Backup completed: docpilot-$(date +%Y%m%d-%H%M%S).dump" &&
+                  find /backups -name "*.dump" -mtime +{{ .Values.backup.retentionDays }} -delete
+              volumeMounts:
+                - name: backup-storage
+                  mountPath: /backups
+          volumes:
+            - name: backup-storage
+              persistentVolumeClaim:
+                claimName: docpilot-backup-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docpilot-backup-pvc
+  namespace: {{ .Values.global.namespace }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: {{ .Values.storageClass }}
+  resources:
+    requests:
+      storage: {{ .Values.backup.storageSize }}
+{{- end }}

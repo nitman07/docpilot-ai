@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: docpilot-api
+  namespace: docpilot
+  labels:
+    app: docpilot-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8000
+      targetPort: 8000
+      protocol: TCP
+      name: http
+  selector:
+    app: docpilot-api

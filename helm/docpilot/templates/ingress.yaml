@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: docpilot-ingress
+  namespace: {{ .Values.global.namespace }}
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  ingressClassName: {{ .Values.ingress.className }}
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: docpilot-api
+                port:
+                  number: {{ .Values.api.service.port }}
+          - path: /grafana
+            pathType: Prefix
+            backend:
+              service:
+                name: docpilot-grafana
+                port:
+                  number: 3000

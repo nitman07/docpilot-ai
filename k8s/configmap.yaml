@@ -1,0 +1,32 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: docpilot-config
+  namespace: docpilot
+data:
+  APP_NAME: DocPilot
+  APP_VERSION: "0.1.0"
+  DEBUG: "false"
+  QDRANT_HOST: docpilot-qdrant
+  QDRANT_PORT: "6333"
+  QDRANT_GRPC_PORT: "6334"
+  QDRANT_PREFER_GRPC: "false"
+  POSTGRES_HOST: docpilot-postgres
+  POSTGRES_PORT: "5432"
+  POSTGRES_USER: docpilot
+  POSTGRES_DB: docpilot
+  REDIS_HOST: docpilot-redis
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  OLLAMA_HOST: http://ollama-service:11434
+  OLLAMA_MODEL: llama3.2:3b
+  RERANKER_MODEL: BAAI/bge-reranker-v2-m3
+  RERANKER_DEVICE: cpu
+  LOG_LEVEL: INFO
+  LOG_JSON: "true"
+  JWT_ALGORITHM: HS256
+  JWT_ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  JWT_REFRESH_TOKEN_EXPIRE_DAYS: "7"
+  ADMIN_EMAIL: admin@docpilot.ai
+  MLFLOW_TRACKING_URI: http://docpilot-mlflow:5000
+  MLFLOW_EXPERIMENT_NAME: docpilot-rag

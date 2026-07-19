@@ -1,0 +1,63 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docpilot-api
+  namespace: docpilot
+  labels:
+    app: docpilot-api
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: docpilot-api
+  template:
+    metadata:
+      labels:
+        app: docpilot-api
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: api
+          image: docpilot-api:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: docpilot-config
+            - secretRef:
+                name: docpilot-secrets
+          env:
+            - name: MLFLOW_TRACKING_URI
+              value: http://docpilot-mlflow:5000
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 500m
+              memory: 1Gi
+            limits:
+              cpu: 2
+              memory: 4Gi
+          volumeMounts:
+            - name: mlflow-data
+              mountPath: /app/mlflow_data
+      volumes:
+        - name: mlflow-data
+          persistentVolumeClaim:
+            claimName: docpilot-mlflow-pvc

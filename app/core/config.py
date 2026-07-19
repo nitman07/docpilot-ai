@@ -51,5 +51,10 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "sqlite:///mlflow_data/mlflow.db"
     mlflow_experiment_name: str = "docpilot-rag"
 
+    cors_origins: list[str] = ["*"]
+
+    rate_limit_calls: int = 20
+    rate_limit_period: int = 60
+
 
 settings = Settings()

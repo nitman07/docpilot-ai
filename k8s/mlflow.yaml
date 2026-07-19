@@ -1,0 +1,88 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: docpilot-mlflow-pvc
+  namespace: docpilot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docpilot-mlflow
+  namespace: docpilot
+  labels:
+    app: docpilot-mlflow
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docpilot-mlflow
+  template:
+    metadata:
+      labels:
+        app: docpilot-mlflow
+    spec:
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: mlflow
+          image: ghcr.io/mlflow/mlflow:v2.14.0
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+          args:
+            - mlflow
+            - server
+            - --host
+            - 0.0.0.0
+            - --backend-store-uri
+            - sqlite:///mlflow_data/mlflow.db
+            - --default-artifact-root
+            - /mlflow_data/artifacts
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 30
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 5000
+            initialDelaySeconds: 15
+            periodSeconds: 15
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          volumeMounts:
+            - name: mlflow-storage
+              mountPath: /mlflow_data
+      volumes:
+        - name: mlflow-storage
+          persistentVolumeClaim:
+            claimName: docpilot-mlflow-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: docpilot-mlflow
+  namespace: docpilot
+  labels:
+    app: docpilot-mlflow
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app: docpilot-mlflow

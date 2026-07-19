@@ -1,9 +1,11 @@
 import asyncpg
+import redis.asyncio as aioredis
 from loguru import logger
 
 from app.core.config import settings
 
 _pool: asyncpg.Pool | None = None
+_redis: aioredis.Redis | None = None
 
 
 async def get_pool() -> asyncpg.Pool:
@@ -23,11 +25,34 @@ async def get_pool() -> asyncpg.Pool:
 
 
 async def close_pool() -> None:
-    global _pool
+    global _pool, _redis
     if _pool:
         await _pool.close()
         _pool = None
         logger.info("PostgreSQL pool closed")
+    if _redis:
+        await _redis.aclose()
+        _redis = None
+        logger.info("Redis connection closed")
+
+
+async def redis_client() -> aioredis.Redis | None:
+    global _redis
+    if _redis is None:
+        try:
+            _redis = aioredis.Redis(
+                host=settings.redis_host,
+                port=settings.redis_port,
+                password=settings.redis_password or None,
+                db=settings.redis_db,
+                decode_responses=True,
+            )
+            await _redis.ping()
+            logger.info("Redis connected")
+        except Exception as e:
+            logger.warning(f"Redis unavailable: {e}")
+            return None
+    return _redis
 
 
 INIT_SQL = """

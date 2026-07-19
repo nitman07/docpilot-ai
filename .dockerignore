@@ -1,0 +1,14 @@
+.env
+.git
+.gitignore
+*.md
+*.mmd
+__pycache__/
+*.pyc
+.DS_Store
+mlflow_data/
+mlruns/
+mlflow.db
+tests/
+docs/
+kind-config.yaml
